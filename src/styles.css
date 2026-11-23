@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: 124 131 255;
+  --surface: 255 255 255;
+  --ink: 17 24 39;
+  --muted: 100 110 130;
+  --line: 17 24 39;
+  --panel-bg: 250 250 252;
+  --font-display: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+.dark {
+  --surface: 22 24 33;
+  --ink: 236 238 245;
+  --muted: 150 158 178;
+  --line: 236 238 245;
+  --panel-bg: 16 17 24;
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: rgb(var(--ink));
+  background: rgb(var(--panel-bg));
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+@layer components {
+  /* Frosted glass card used on top of photos */
+  .glass {
+    background: rgba(20, 22, 30, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+  .glass-flat {
+    background: rgba(20, 22, 30, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  .no-blur .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(15, 17, 24, 0.55); }
+
+  /* Theme-aware solid panel surface */
+  .panel {
+    background: rgb(var(--surface) / 0.92);
+    border: 1px solid rgb(var(--line) / 0.08);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+  }
+  .card {
+    background: rgb(var(--surface) / 0.7);
+    border: 1px solid rgb(var(--line) / 0.08);
+    border-radius: 1rem;
+  }
+  .dash-text { color: #fff; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35); }
+  .input {
+    @apply w-full rounded-xl px-3 py-2 text-sm outline-none transition;
+    background: rgb(var(--line) / 0.05);
+    border: 1px solid rgb(var(--line) / 0.10);
+    color: rgb(var(--ink));
+  }
+  .input:focus { border-color: rgb(var(--accent) / 0.7); box-shadow: 0 0 0 3px rgb(var(--accent) / 0.18); }
+  .input::placeholder { color: rgb(var(--muted) / 0.8); }
+  .label { @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium; }
+  .section-title { @apply text-xs font-semibold uppercase tracking-wider text-muted; }
+}
+
+/* Scrollbars */
+.scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line) / 0.2) transparent; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgb(var(--line) / 0.18); border-radius: 8px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* Rich text editor content */
+.prose-note { line-height: 1.65; font-size: 0.95rem; }
+.prose-note h1 { font-size: 1.6rem; font-weight: 700; margin: 0.6em 0 0.3em; }
+.prose-note h2 { font-size: 1.25rem; font-weight: 650; margin: 0.6em 0 0.3em; }
+.prose-note h3 { font-size: 1.05rem; font-weight: 650; margin: 0.6em 0 0.3em; }
+.prose-note ul { list-style: disc; padding-left: 1.4em; }
+.prose-note ol { list-style: decimal; padding-left: 1.4em; }
+.prose-note blockquote { border-left: 3px solid rgb(var(--accent)); padding-left: 0.8em; color: rgb(var(--muted)); }
+.prose-note a { color: rgb(var(--accent)); text-decoration: underline; }
+.prose-note code { background: rgb(var(--line) / 0.08); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.88em; }
+.prose-note pre { background: rgb(var(--line) / 0.06); padding: 0.8em; border-radius: 8px; overflow-x: auto; }
+.prose-note hr { border-color: rgb(var(--line) / 0.15); margin: 1em 0; }
+.prose-note ul[data-checklist] { list-style: none; padding-left: 0.2em; }
+.prose-note:empty::before { content: attr(data-placeholder); color: rgb(var(--muted) / 0.7); }
+
+/* Background crossfade: new photo fades in while settling from a slight zoom */
+.bg-layer { position: absolute; inset: 0; background-size: cover; background-position: center;
+  transition: opacity 1.4s ease, transform 2.6s cubic-bezier(.2,.7,.1,1); transform: scale(1.04); }
+.bg-layer.is-shown { transform: none; }
+
+/* ---------- General motion ---------- */
+/*
+ * Entrance that keeps frosted glass smooth.
+ * Chrome disables an element's backdrop-filter while an ANCESTOR has opacity < 1 or a
+ * filter, so fading a wrapper makes the glass inside pop from "no blur" to "full blur".
+ * Rule: wrappers only move (transform); glass elements fade themselves.
+ * Set the stagger with the --d custom property.
+ */
+@keyframes rise-move { from { transform: translateY(14px) scale(.985); } to { transform: none; } }
+@keyframes rise-fade { from { opacity: 0; } to { opacity: 1; } }
+.enter, .focus-enter > * {
+  animation: rise-move .8s cubic-bezier(.2,.8,.2,1) var(--d, 0ms) backwards,
+             rise-fade .6s ease var(--d, 0ms) backwards;
+}
+.enter:has(.glass), .focus-enter > *:has(.glass) {
+  animation: rise-move .8s cubic-bezier(.2,.8,.2,1) var(--d, 0ms) backwards;
+}
+.enter:has(.glass) .glass, .focus-enter > *:has(.glass) .glass {
+  animation: rise-fade .6s ease var(--d, 0ms) backwards;
+}
+.focus-enter > *:nth-child(1) { --d: 50ms; }
+.focus-enter > *:nth-child(2) { --d: 150ms; }
+.focus-enter > *:nth-child(3) { --d: 250ms; }
+.focus-enter > *:nth-child(4) { --d: 350ms; }
+.focus-enter > *:nth-child(5) { --d: 450ms; }
+.focus-enter > *:nth-child(6) { --d: 550ms; }
+
+/*
+ * Dashboard stepping aside for focus mode. Fades each glass card and each plain-text
+ * widget individually (never the container), so blur fades out smoothly with them.
+ */
+.dash-away .glass, .dash-away .enter:not(:has(.glass)), .dash-away .dash-misc { opacity: 0 !important; pointer-events: none; }
+.dash-root .glass, .dash-root .enter, .dash-root .dash-misc { transition: opacity .45s ease, transform .3s cubic-bezier(.2,.8,.2,1), background-color .2s ease, box-shadow .3s ease; }
+
+/* Focus mode backdrop: its own layer, so fading it animates the blur smoothly. */
+.focus-scrim { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: rgba(0,0,0,.35);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); animation: rise-fade .5s ease backwards; }
+/*
+ * Leaving focus mode: fade glass cards, plus the top-most elements that contain no glass.
+ * (Fading a container would disable the blur of glass inside it.)
+ */
+.focus-leaving .focus-root .glass,
+.focus-leaving .focus-root > :not(.glass):not(:has(.glass)),
+.focus-leaving .focus-root :has(.glass) > :not(.glass):not(:has(.glass)) {
+  opacity: 0 !important; transition: opacity .22s ease !important;
+}
+
+/* Overlay that blurs what's behind it; fading its OWN opacity animates the blur smoothly. */
+.scrim { position: absolute; inset: 0; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+/* Completed-task strike-through draws left → right */
+.strike { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat;
+  background-position: 0 55%; background-size: 0% 1.5px; transition: background-size .35s cubic-bezier(.2,.8,.2,1), opacity .35s ease; }
+.strike.is-done { background-size: 100% 1.5px; opacity: .6; }
+
+/* Row fades and slides away after its tick animation */
+.task-leave { animation: task-leave .25s .3s cubic-bezier(.4,0,1,1) both; }
+@keyframes task-leave { to { opacity: 0; transform: translateX(10px); } }
+
+/* Celebration burst (see <Burst/>) */
+.burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: 5; }
+.burst i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 9999px;
+  background: var(--c, #fff); animation: burst-fly .7s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes burst-fly {
+  0%   { transform: rotate(var(--a)) translateX(0) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(var(--d, 22px)) scale(.2); opacity: 0; }
+}
+
+/* Dock: icons lift on hover, neighbours lean in */
+.dock-btn { transition: transform .25s cubic-bezier(.34,1.56,.64,1), background-color .2s ease, color .2s ease; }
+.dock-btn:hover { transform: translateY(-4px) scale(1.15); }
+.dock-btn:hover + .dock-btn, .dock-btn:has(+ .dock-btn:hover) { transform: translateY(-2px) scale(1.06); }
+.dock-btn:active { transform: translateY(-1px) scale(.95); }
+.dock-tip { transition: opacity .15s ease, transform .2s cubic-bezier(.34,1.56,.64,1); transform: translateY(4px) scale(.9); }
+.dock-btn:hover .dock-tip { opacity: 1; transform: none; }
+
+/* Sliding indicator for segmented controls / tabs */
+.slider-pill { position: absolute; transition: left .3s cubic-bezier(.34,1.3,.64,1), width .3s cubic-bezier(.34,1.3,.64,1); }
+
+/* Glass cards respond subtly on hover */
+.lift { transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease; }
+.lift:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.1); }
+
+/* ---------- Focus mode ---------- */
+/* Background eases in closer when focus mode opens, then drifts slowly while a session runs. */
+.bg-stage { position: absolute; inset: -4%; transition: transform 2.4s cubic-bezier(.2,.7,.1,1), filter 2.4s ease; }
+.bg-stage.is-focus { transform: scale(1.08); filter: saturate(.85) brightness(.82); }
+.bg-stage.is-running { animation: bg-drift 60s ease-in-out infinite alternate; }
+@keyframes bg-drift {
+  from { transform: scale(1.08) translate3d(0, 0, 0); }
+  to   { transform: scale(1.14) translate3d(-1.5%, -1%, 0); }
+}
+
+
+/* Breathing halo behind the timer ring: ~4s in, ~4s out. */
+.focus-halo { position: absolute; inset: 6%; border-radius: 9999px; pointer-events: none;
+  background: radial-gradient(circle, var(--halo, rgba(255,255,255,.22)) 0%, transparent 68%);
+  opacity: .35; transform: scale(.92); transition: opacity 1s ease, background 1.2s ease; }
+.focus-halo.is-running { animation: focus-breathe 8s ease-in-out infinite; }
+@keyframes focus-breathe {
+  0%, 100% { transform: scale(.92); opacity: .35; }
+  50%      { transform: scale(1.18); opacity: .9; }
+}
+
+/* Dashboard focus widget: soft glow breathes in time with the focus-mode halo. */
+.focus-widget-breathe { animation: focus-widget-breathe 8s ease-in-out infinite; }
+@keyframes focus-widget-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  50%      { box-shadow: 0 0 18px 4px rgba(255,255,255,.22); }
+}
+
+/* Ring colour cross-fades between phases. */
+.focus-ring-progress { transition: stroke-dashoffset .3s linear, stroke 1.2s ease; }
+
+/* One-shot ripple when a session completes. */
+.focus-ripple { position: absolute; inset: 0; border-radius: 9999px; border: 2px solid var(--halo-solid, #fff);
+  pointer-events: none; animation: focus-ripple 1.6s cubic-bezier(.2,.8,.2,1) forwards; }
+.focus-ripple.delay { animation-delay: .25s; opacity: 0; }
+@keyframes focus-ripple {
+  from { transform: scale(1); opacity: .8; }
+  to   { transform: scale(1.6); opacity: 0; }
+}
+
+/* Digits settle in when the phase changes. */
+.focus-digits { animation: focus-digits .6s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes focus-digits {
+  from { opacity: 0; transform: translateY(6px); letter-spacing: .02em; }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+input[type='range'] { accent-color: rgb(var(--accent)); }
+input[type='checkbox'] { accent-color: rgb(var(--accent)); }
