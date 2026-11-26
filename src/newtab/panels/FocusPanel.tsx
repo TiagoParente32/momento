@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, Pause, RotateCcw, SkipForward, Volume2, VolumeX, ShieldBan, Settings2, Timer, CheckCircle2, Flame } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { X, Play, Pause, RotateCcw, SkipForward, Volume2, VolumeX, ShieldBan, Settings2, Timer, Flame } from 'lucide-react';
 import { useFocus, focusStats, remainingMs, PHASE_LABEL } from '@/stores/focus';
-import { useTasks, topTask } from '@/stores/tasks';
+import { useTasks } from '@/stores/tasks';
 import { useS } from '@/stores/settings';
 import { useUI } from '@/stores/ui';
 import { useBlocker, blockingActive } from '@/stores/blocker';
@@ -36,8 +36,6 @@ export default function FocusPanel() {
 
   const remaining = remainingMs(timer, now.getTime());
   const progress = timer.durationMs ? 1 - remaining / timer.durationMs : 0;
-  const openTasks = useMemo(() => tasks.filter((t) => !t.done), [tasks]);
-  const linked = tasks.find((t) => t.id === timer.taskId);
   const stats = focusStats(sessions, s.weekStartsOn, now);
   const block = blockingActive(blocker, timer, fs, now);
 
@@ -198,29 +196,6 @@ export default function FocusPanel() {
           </div>
         )}
 
-        {/* linked task */}
-        <div className="flex w-full max-w-md flex-col items-center gap-1">
-          <label htmlFor="focus-task" className="text-xs uppercase tracking-[0.2em] text-white/60">Working on</label>
-          <select
-            id="focus-task"
-            value={timer.taskId ?? ''}
-            onChange={(e) => f.setTask(e.target.value || null)}
-            className="glass w-full cursor-pointer appearance-none rounded-xl px-4 py-2 text-center text-base text-white outline-none [&>option]:text-zinc-900"
-          >
-            <option value="">— No task —</option>
-            {linked && linked.done && <option value={linked.id}>{linked.title} (done)</option>}
-            {openTasks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-          </select>
-          {!timer.taskId && openTasks.length > 0 && (
-            <button className="text-xs text-white/70 underline-offset-2 hover:underline" onClick={() => f.setTask(topTask(openTasks)!.id)}>Use most important task</button>
-          )}
-          {linked && !linked.done && (
-            <button className="mt-1 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white" onClick={() => { useTasks.getState().toggleTask(linked.id); f.setTask(null); }}>
-              <CheckCircle2 className="h-3.5 w-3.5" /> Mark task complete
-            </button>
-          )}
-          {linked && linked.focusMinutes > 0 && <span className="text-xs text-white/60">{formatMinutes(linked.focusMinutes)} focused on this task</span>}
-        </div>
       </main>
 
       {/* bottom: sounds + stats */}
