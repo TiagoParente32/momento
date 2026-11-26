@@ -5,7 +5,7 @@ import { useS, useSettings } from '@/stores/settings';
 import {
   useAuth, useSyncConfig, initAuth, login, logout, register, sendPasswordReset, syncNow, updatePassword, updateProfile, deleteCloudData,
 } from '@/lib/sync';
-import { hasBuildConfig, isValidSupabaseUrl } from '@/lib/supabase';
+import { isValidSupabaseUrl } from '@/lib/supabase';
 import { Group, Note, Row, Section } from './common';
 
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
@@ -18,7 +18,7 @@ export function AccountSection() {
     <Section title="Account & profile" description="Your profile, sign-in and optional cloud sync across devices.">
       <ProfileGroup />
       {!auth.ready ? null : !auth.configured ? <SupabaseConfig /> : auth.user ? <SignedIn /> : <AuthForms />}
-      {auth.ready && auth.configured && !hasBuildConfig() && <SupabaseConfig compact />}
+      {auth.ready && auth.configured && <SupabaseConfig compact />}
     </Section>
   );
 }
@@ -73,7 +73,7 @@ function SupabaseConfig({ compact }: { compact?: boolean }) {
       {!compact && (
         <Note>
           <p className="flex items-center gap-1.5 font-medium"><CloudOff className="h-3.5 w-3.5" /> Not configured</p>
-          <p className="mt-1">To sync across devices, create a free Supabase project, run <code>supabase/migrations/0001_init.sql</code>, then paste the project URL and <b>anon public</b> key below (Project Settings → API). You can also bake them in at build time with <code>VITE_SUPABASE_URL</code> / <code>VITE_SUPABASE_ANON_KEY</code>. Never paste the service-role key here.</p>
+          <p className="mt-1">To sync across devices, create a free Supabase project, run <code>supabase/migrations/0001_init.sql</code>, then paste the project URL and <b>anon public</b> key below (Project Settings → API). Never paste the service-role key here.</p>
         </Note>
       )}
       <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void save(); }}>

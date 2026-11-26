@@ -63,7 +63,6 @@ const ACTIONS: QuickAction[] = [
 export default function AIPanel() {
   const messages = useAI((s) => s.messages);
   const model = useAI((s) => s.model);
-  const mode = useAI((s) => s.mode);
   const openPanel = useUI((s) => s.openPanel);
   const [status, setStatus] = useState<AIStatus | null>(null);
   const [draft, setDraft] = useState('');
@@ -73,7 +72,7 @@ export default function AIPanel() {
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { void getAIStatus().then(setStatus); }, [mode, model]);
+  useEffect(() => { void getAIStatus().then(setStatus); }, [model]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, [messages]);
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -194,7 +193,7 @@ export default function AIPanel() {
             )}
           </form>
           <p className="mt-1.5 text-[11px] text-muted">
-            {mode === 'byok' ? 'Using your own Anthropic API key' : 'Using the secure Momento AI proxy'} · AI can make mistakes — double-check important details.
+            Using your own Anthropic API key · AI can make mistakes — double-check important details.
           </p>
         </div>
       </div>

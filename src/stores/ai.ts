@@ -2,7 +2,6 @@ import { createPersisted } from '@/lib/persist';
 import { KEYS } from '@/lib/storage';
 import { uid } from '@/lib/utils';
 
-export type AIMode = 'proxy' | 'byok';
 export type AIModel = 'claude-opus-5-5' | 'claude-sonnet-5-5' | 'claude-haiku-5-5';
 
 export const AI_MODELS: { value: AIModel; label: string; hint: string }[] = [
@@ -28,13 +27,11 @@ export interface ChatMessage {
 export const useAI = createPersisted(
   KEYS.ai,
   {
-    mode: 'proxy' as AIMode,
     apiKey: '',
     model: 'claude-opus-5-5' as AIModel,
     messages: [] as ChatMessage[],
   },
   (set) => ({
-    setMode(mode: AIMode) { set({ mode }); },
     setApiKey(apiKey: string) { set({ apiKey: apiKey.trim() }); },
     setModel(model: AIModel) { set({ model }); },
     addMessage(m: Omit<ChatMessage, 'id' | 'createdAt'>): ChatMessage {

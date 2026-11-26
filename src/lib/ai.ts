@@ -1,32 +1,20 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { getSupabase, getSupabaseConfig } from './supabase';
 import { useAI, type AIModel } from '@/stores/ai';
 
 /**
- * Momento AI client. Two modes:
- *  - 'proxy': calls the `momento-ai` Supabase Edge Function with the signed-in user's
- *    session token. The Anthropic API key lives only on the server (Edge Function secret).
- *  - 'byok':  "bring your own key" — the user's own Anthropic key, kept in chrome.storage.local
- *    on this device and sent directly to api.anthropic.com from the browser.
- * Nothing is ever faked: if neither mode is usable, `getAIStatus()` says why.
+ * Momento AI client. Uses only the user's own Anthropic API key ("bring your own key"),
+ * kept in chrome.storage.local on this device and sent directly to api.anthropic.com.
+ * Momento never ships or proxies a key of its own. If no key is set, `getAIStatus()` says so.
  */
 
 export type ChatTurn = { role: 'user' | 'assistant'; content: string };
 
-export interface AIStatus { ready: boolean; mode: 'proxy' | 'byok'; reason?: string }
+export interface AIStatus { ready: boolean; reason?: string }
 
 export async function getAIStatus(): Promise<AIStatus> {
   await useAI.ready;
-  const { mode, apiKey } = useAI.getState();
-  if (mode === 'byok') {
-    return apiKey ? { ready: true, mode } : { ready: false, mode, reason: 'Add your Anthropic API key in Settings → Momento AI.' };
-  }
-  const cfg = await getSupabaseConfig();
-  if (!cfg) return { ready: false, mode, reason: 'The secure AI proxy needs a Supabase project (Settings → Account), or switch to "Use my own API key".' };
-  const sb = await getSupabase();
-  const { data } = (await sb?.auth.getSession()) ?? { data: { session: null } };
-  if (!data.session) return { ready: false, mode, reason: 'Sign in to your Momento account (Settings → Account) to use the AI proxy.' };
-  return { ready: true, mode };
+  const { apiKey } = useAI.getState();
+  return apiKey ? { ready: true } : { ready: false, reason: 'Add your Anthropic API key in Settings → Momento AI.' };
 }
 
 export class AIError extends Error {}
@@ -41,8 +29,8 @@ interface StreamOpts {
 /** Streams a reply; resolves with the full text. */
 export async function streamChat(opts: StreamOpts): Promise<string> {
   await useAI.ready;
-  const { mode, apiKey, model } = useAI.getState();
-  return mode === 'byok' ? streamDirect(apiKey, model, opts) : streamProxy(model, opts);
+  const { apiKey, model } = useAI.getState();
+  return streamDirect(apiKey, model, opts);
 }
 
 /** Server-side refusal fallback: "default" routes by category; Haiku has no server-side fallback. */
@@ -87,61 +75,6 @@ async function streamDirect(apiKey: string, model: AIModel, { system, messages, 
     if (e instanceof Anthropic.APIError) throw new AIError(`Anthropic API error ${e.status ?? ''}: ${e.message}`);
     throw e;
   }
-}
-
-async function streamProxy(model: AIModel, { system, messages, onText, signal }: StreamOpts) {
-  const cfg = await getSupabaseConfig();
-  const sb = await getSupabase();
-  if (!cfg || !sb) throw new AIError('AI proxy is not configured.');
-  const { data } = await sb.auth.getSession();
-  if (!data.session) throw new AIError('Sign in to use Momento AI.');
-
-  let res: Response;
-  try {
-    res = await fetch(`${cfg.url}/functions/v1/momento-ai`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}`, apikey: cfg.anonKey },
-      body: JSON.stringify({ system, messages, model }),
-      signal,
-    });
-  } catch (e: any) {
-    if (e?.name === 'AbortError') return '';
-    throw new AIError('Could not reach the Momento AI proxy. Is the momento-ai function deployed?');
-  }
-  if (!res.ok || !res.body) {
-    const body = await res.json().catch(() => ({}));
-    throw new AIError(body.error ?? `AI proxy error (${res.status}).`);
-  }
-
-  // Our proxy emits SSE lines: data: {"text":"..."} | data: {"error":"..."} | data: [DONE]
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  let text = '';
-  try {
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      let idx;
-      while ((idx = buf.indexOf('\n\n')) >= 0) {
-        const chunk = buf.slice(0, idx);
-        buf = buf.slice(idx + 2);
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data:')) continue;
-          const payload = line.slice(5).trim();
-          if (payload === '[DONE]') return text;
-          const ev = JSON.parse(payload) as { text?: string; error?: string };
-          if (ev.error) throw new AIError(ev.error);
-          if (ev.text) { text += ev.text; onText(ev.text); }
-        }
-      }
-    }
-  } catch (e: any) {
-    if (e?.name === 'AbortError') return text;
-    throw e;
-  }
-  return text;
 }
 
 /** Extracts a fenced ```json task array from a model reply. */

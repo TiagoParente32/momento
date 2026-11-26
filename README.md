@@ -54,29 +54,15 @@ Everything works locally without any setup. The steps below are only for the ext
 1. Create a Supabase project.
 2. Run `supabase/migrations/0001_init.sql`, either in the SQL editor or with `supabase db push`. It creates the `momento_state` table and its RLS policies.
 3. Deploy account deletion: `supabase functions deploy delete-account`.
-4. Provide your project URL and **anon** key in one of two ways:
-   - at build time, in `.env.local`:
-     ```
-     VITE_SUPABASE_URL=https://xyz.supabase.co
-     VITE_SUPABASE_ANON_KEY=eyJ...
-     ```
-   - at runtime, in **Settings → Account & profile**.
+4. Enter your project URL and **anon** key in **Settings → Account & profile**. Momento doesn't ship with a Supabase project, so each user connects their own.
 
 Never put the service-role key in the extension. Sync is last-write-wins. Integration tokens, AI keys and caches are never synced.
 
 ### Momento AI
 
-You can connect Momento AI in two ways:
+Momento AI uses your own Anthropic API key. Paste it in **Settings → Momento AI**. Momento doesn't ship a key or run a proxy server. The key is stored only in this browser's extension storage and is sent straight to api.anthropic.com. The settings page explains this trade-off.
 
-- **Secure proxy (recommended).** Requests go through `supabase/functions/momento-ai`, which checks the user's Supabase session and calls Claude with a key that lives only on the server:
-  ```bash
-  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-  supabase functions deploy momento-ai
-  ```
-  To restrict CORS to your extension, also set `ALLOWED_ORIGINS=chrome-extension://<your-extension-id>`.
-- **Your own key.** Paste an Anthropic key in **Settings → Momento AI**. The key is stored only in this browser's extension storage and is sent straight to api.anthropic.com. The settings page explains this trade-off.
-
-The default model is Claude Opus 5.5. You can switch to Sonnet 5.5 or Haiku 5.5. Replies are streamed. If neither mode is configured, the panel says so instead of returning fake answers.
+The default model is Claude Opus 5.5. You can switch to Sonnet 5.5 or Haiku 5.5. Replies are streamed. If no key is set, the panel says so instead of returning fake answers.
 
 ### Integrations
 
@@ -129,5 +115,5 @@ src/
   newtab/          dashboard, widgets/, panels/
   popup/           toolbar popup
   blocked/         "Stay focused" page shown for blocked sites
-supabase/          SQL migration + Edge Functions (momento-ai, delete-account)
+supabase/          SQL migration + Edge Function (delete-account)
 ```

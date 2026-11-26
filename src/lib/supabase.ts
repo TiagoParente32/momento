@@ -2,29 +2,23 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { getItem, KEYS } from './storage';
 
 /**
- * Optional Supabase backend (auth + cloud sync + AI proxy).
- * Configured either at build time (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)
- * or at runtime from Settings → Account (stored locally under KEYS.sync, never synced).
+ * Optional Supabase backend (auth + cloud sync), using the user's own Supabase project.
+ * Configured only at runtime from Settings → Account (stored locally under KEYS.sync, never synced);
+ * no project is ever baked into the build.
  * Only the public anon key is ever used client-side; data access is protected by RLS.
  */
-export interface SupabaseConfig { url: string; anonKey: string; source: 'build' | 'user' }
-
-const envUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
-const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
+export interface SupabaseConfig { url: string; anonKey: string; source: 'user' }
 
 let client: SupabaseClient | null = null;
 let clientKey = '';
 
 export async function getSupabaseConfig(): Promise<SupabaseConfig | null> {
-  if (envUrl && envKey) return { url: envUrl.replace(/\/$/, ''), anonKey: envKey, source: 'build' };
   const stored = await getItem<{ config?: { url?: string; anonKey?: string } }>(KEYS.sync);
   const url = stored?.config?.url?.trim();
   const anonKey = stored?.config?.anonKey?.trim();
   if (url && anonKey) return { url: url.replace(/\/$/, ''), anonKey, source: 'user' };
   return null;
 }
-
-export const hasBuildConfig = () => !!(envUrl && envKey);
 
 /** Returns a cached client, or null when Supabase isn't configured. */
 export async function getSupabase(): Promise<SupabaseClient | null> {

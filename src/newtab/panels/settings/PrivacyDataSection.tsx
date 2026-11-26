@@ -27,7 +27,7 @@ export function PlanSection() {
           {features.map((f) => <li key={f} className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />{f}</li>)}
         </ul>
       </div>
-      <Note>Optional services you configure yourself (Supabase for sync/AI proxy, your own Anthropic key) are billed by those providers under your own account, if at all.</Note>
+      <Note>Optional services you configure yourself (your own Supabase project for sync, your own Anthropic key) are billed by those providers under your own account, if at all.</Note>
     </Section>
   );
 }

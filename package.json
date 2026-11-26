@@ -1,6 +1,6 @@
 {
   "name": "momento",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Momento – Make every moment count. An all-in-one productivity new-tab extension.",
   "type": "module",
