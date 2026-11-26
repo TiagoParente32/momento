@@ -4,6 +4,8 @@
 
 **Every feature is free.** There is no paid tier, no billing and no tracking.
 
+![Momento new-tab dashboard](docs/screenshot.png)
+
 ---
 
 ## Features
