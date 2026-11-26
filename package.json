@@ -8,8 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:fast": "vite build",
-    "typecheck": "tsc --noEmit",
-    "icons": "node scripts/make-icons.mjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",
